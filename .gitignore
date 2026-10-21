@@ -107,6 +107,10 @@ coverage/
 .settings/
 .history/
 
+# ---------- Documentos locales del taller ----------
+TALLER.md
+DIAGNOSTICO_NOTEBOOK.md
+
 # ---------- Sistema operativo ----------
 $RECYCLE.BIN/
 .Spotlight-V100/
