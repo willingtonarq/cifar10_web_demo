@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Clasificador CIFAR-10</title>
+    <style>
+        :root {
+            font-family: Inter, system-ui, Arial, sans-serif;
+            color: #172033;
+            background: #f3f6fb;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 28px 16px;
+        }
+
+        main {
+            max-width: 850px;
+            margin: auto;
+            background: white;
+            padding: 28px;
+            border-radius: 18px;
+            box-shadow: 0 12px 38px #17203312;
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        .muted {
+            color: #596579;
+            line-height: 1.5;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 24px;
+        }
+
+        .panel {
+            border: 1px solid #dce3ed;
+            border-radius: 14px;
+            padding: 18px;
+            min-width: 0;
+        }
+
+        input,
+        button {
+            font: inherit;
+        }
+
+        input {
+            width: 100%;
+            margin: 12px 0;
+        }
+
+        button {
+            border: 0;
+            border-radius: 9px;
+            padding: 11px 16px;
+            background: #2459d3;
+            color: white;
+            cursor: pointer;
+            font-weight: 650;
+        }
+
+        button:disabled {
+            opacity: .55;
+            cursor: wait;
+        }
+
+        img {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            margin-top: 12px;
+            border-radius: 10px;
+            background: #f3f6fb;
+        }
+
+        .result {
+            font-size: 1.25rem;
+            font-weight: 750;
+            margin: 12px 0 4px;
+            text-transform: capitalize;
+        }
+
+        .barrow {
+            margin: 12px 0;
+        }
+
+        .barlabel {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: .92rem;
+            text-transform: capitalize;
+        }
+
+        .track {
+            height: 9px;
+            border-radius: 9px;
+            background: #e7ecf4;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .fill {
+            height: 100%;
+            background: #2459d3;
+            width: 0;
+        }
+
+        .status {
+            min-height: 24px;
+            color: #9a3412;
+            font-size: .93rem;
+            margin-top: 10px;
+        }
+
+        .note {
+            background: #fff7df;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: .9rem;
+            line-height: 1.45;
+            margin-top: 18px;
+        }
+
+        @media (max-width: 650px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            main {
+                padding: 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <h1>Clasificador de imágenes CIFAR-10</h1>
+        <p class="muted">Selecciona una imagen. La página la enviará a una API Python que ejecuta el modelo de Deep
+            Learning.</p>
+        <div class="layout">
+            <section class="panel">
+                <h2>1. Selecciona una imagen</h2>
+                <input id="imageInput" type="file" accept="image/*">
+                <img id="preview" alt="Vista previa de la imagen seleccionada" hidden>
+                <p class="muted">Clases: avión, automóvil, ave, gato, ciervo, perro, rana, caballo, barco y camión.</p>
+                <button id="predictButton" disabled>Clasificar imagen</button>
+                <div id="status" class="status" role="status"></div>
+            </section>
+            <section class="panel">
+                <h2>2. Resultado</h2>
+                <div id="result" class="muted">Todavía no hay una predicción.</div>
+                <div id="top3"></div>
+            </section>
+        </div>
+        <div class="note"><strong>Importante:</strong> el modelo fue entrenado con imágenes CIFAR-10 de 32 × 32 píxeles.
+            Una fotografía real, al reducirse a ese tamaño, puede no clasificarse correctamente. El porcentaje
+            representa la salida del modelo, no una garantía de exactitud.</div>
+    </main>
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+        const imageInput = document.getElementById("imageInput");
+        const preview = document.getElementById("preview");
+        const predictButton = document.getElementById("predictButton");
+        const statusBox = document.getElementById("status");
+        const resultBox = document.getElementById("result");
+        const top3Box = document.getElementById("top3");
+        let selectedFile = null;
+        let previewUrl = null;
+
+        imageInput.addEventListener("change", () => {
+            selectedFile = imageInput.files?.[0] || null;
+            predictButton.disabled = !selectedFile;
+            statusBox.textContent = "";
+            top3Box.replaceChildren();
+            resultBox.textContent = "Listo para clasificar.";
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            if (selectedFile) {
+                previewUrl = URL.createObjectURL(selectedFile);
+                preview.src = previewUrl;
+                preview.hidden = false;
+            } else {
+                preview.removeAttribute("src");
+                preview.hidden = true;
+            }
+        });
+
+        predictButton.addEventListener("click", async () => {
+            if (!selectedFile) return;
+            predictButton.disabled = true;
+            statusBox.textContent = "Clasificando imagen…";
+            resultBox.textContent = "";
+            top3Box.replaceChildren();
+            try {
+                const formData = new FormData();
+                formData.append("file", selectedFile);
+                const response = await fetch(`${API_URL}/predict`, { method: "POST", body: formData });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || "La API devolvió un error.");
+                resultBox.innerHTML = "";
+                const title = document.createElement("div");
+                title.className = "result";
+                title.textContent = data.predicted_class;
+                const confidence = document.createElement("div");
+                confidence.className = "muted";
+                confidence.textContent = `Probabilidad estimada: ${(data.confidence * 100).toFixed(1)} %`;
+                resultBox.append(title, confidence);
+
+                data.top3.forEach(item => {
+                    const row = document.createElement("div");
+                    row.className = "barrow";
+                    const label = document.createElement("div");
+                    label.className = "barlabel";
+                    const name = document.createElement("span");
+                    name.textContent = item.class_name;
+                    const pct = document.createElement("span");
+                    pct.textContent = `${(item.probability * 100).toFixed(1)} %`;
+                    label.append(name, pct);
+                    const track = document.createElement("div");
+                    track.className = "track";
+                    const fill = document.createElement("div");
+                    fill.className = "fill";
+                    fill.style.width = `${Math.max(0, Math.min(100, item.probability * 100))}%`;
+                    track.append(fill);
+                    row.append(label, track);
+                    top3Box.append(row);
+                });
+                statusBox.textContent = data.note || "Predicción completada.";
+                statusBox.style.color = "#596579";
+            } catch (error) {
+                statusBox.textContent = `Error: ${error.message}. Verifica que la API esté ejecutándose en http://127.0.0.1:8000.`;
+                statusBox.style.color = "#9a3412";
+            } finally {
+                predictButton.disabled = !selectedFile;
+            }
+        });
+    </script>
+</body>
+
+</html>
