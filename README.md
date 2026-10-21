@@ -45,13 +45,26 @@ Si lo descomprimiste en otra ubicación, ajusta la ruta del comando `cd`.
 Crea un entorno virtual:
 
 ```bat
-py -m venv .venv
+py -3.13 -m venv .venv
+```
+
+Si la ruta del proyecto es larga y TensorFlow falla al instalarse por una ruta
+demasiado larga, créalo fuera del proyecto en una ruta corta:
+
+```bat
+py -3.13 -m venv C:\cifar10-venv
 ```
 
 Actívalo:
 
 ```bat
 .venv\Scripts\activate.bat
+```
+
+Para el entorno alternativo, actívalo con:
+
+```bat
+C:\cifar10-venv\Scripts\activate.bat
 ```
 
 Cuando esté activo, normalmente verás `(.venv)` al comienzo de la línea de comandos.
@@ -70,6 +83,20 @@ python --version
 ```
 
 En ese caso, no cambies paquetes al azar: utiliza una versión de Python compatible con la versión de TensorFlow que vayas a instalar y crea de nuevo el entorno virtual con esa versión.
+
+### Entrenar el modelo localmente
+
+Si todavía no tienes `cifar10_dense_model.keras`, desde `backend` ejecuta:
+
+```bat
+python train_model.py
+```
+
+El script descarga CIFAR-10, entrena la red densa con validación y guarda el
+resultado automáticamente en `backend\cifar10_dense_model.keras`. El entrenamiento
+puede tardar varios minutos en CPU. También puedes ejecutar el notebook
+`CIFAR10_Red_Densa_Entrenamiento_Incompleto.ipynb` en Colab y copiar el archivo
+descargado a esa misma ubicación.
 
 ## 3. Iniciar la API
 
