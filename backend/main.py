@@ -11,8 +11,8 @@ BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR / "cifar10_dense_model.keras"
 
 CLASS_NAMES = [
-    "airplane", "automobile", "bird", "cat", "deer",
-    "dog", "frog", "horse", "ship", "truck",
+    "avión", "automóvil", "ave", "gato", "ciervo",
+    "perro", "rana", "caballo", "barco", "camión",
 ]
 
 app = FastAPI(
